@@ -1170,8 +1170,13 @@ function Library:Window(options)
 					Name = options.Title or "Live Display",
 					Value = options.DefaultValue or "N/A",
 					UpdateFunction = options.UpdateFunction or function() return "N/A" end,
-					ValueType = options.ValueType or "text", -- "text", "number", "boolean"
-					Format = options.Format or nil -- for number formatting like "%.2f"
+					ValueType = options.ValueType or "auto", -- "auto", "text", "string", "number", "boolean"
+					Format = options.Format or nil, -- for number formatting like "%.2f"
+					StringStates = options.StringStates or {
+						TrueValue = "Active",
+						FalseValue = "Inactive",
+						CheckFunction = options.CheckFunction -- Function that returns true/false for string states
+					}
 				}
 
 				local DisplayFrame = Utility.CreateElement("Frame", {
