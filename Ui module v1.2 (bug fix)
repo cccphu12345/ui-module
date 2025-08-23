@@ -1248,17 +1248,31 @@ function Library:Window(options)
 				Library:RegisterLiveUpdate(DisplayFrame, function()
 					local newValue = LiveDisplay.UpdateFunction()
 
-					if LiveDisplay.ValueType == "number" and type(newValue) == "number" then
+					if LiveDisplay.ValueType == "string" or (LiveDisplay.ValueType == "auto" and LiveDisplay.StringStates.CheckFunction) then
+						-- String state mode - use CheckFunction to determine true/false
+						if LiveDisplay.StringStates.CheckFunction then
+							local isTrue = LiveDisplay.StringStates.CheckFunction()
+							ValueLabel.Text = isTrue and LiveDisplay.StringStates.TrueValue or LiveDisplay.StringStates.FalseValue
+							ValueLabel.TextColor3 = isTrue and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(255, 100, 100)
+							StatusIndicator.BackgroundColor3 = isTrue and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 100, 100)
+						else
+							ValueLabel.Text = tostring(newValue)
+						end
+					elseif LiveDisplay.ValueType == "number" or (LiveDisplay.ValueType == "auto" and type(newValue) == "number") then
 						if LiveDisplay.Format then
 							ValueLabel.Text = string.format(LiveDisplay.Format, newValue)
 						else
 							ValueLabel.Text = tostring(math.floor(newValue * 100) / 100)
 						end
-					elseif LiveDisplay.ValueType == "boolean" then
+						ValueLabel.TextColor3 = Color3.new(1, 1, 1)
+					elseif LiveDisplay.ValueType == "boolean" or (LiveDisplay.ValueType == "auto" and type(newValue) == "boolean") then
 						ValueLabel.Text = newValue and "✓ ON" or "✗ OFF"
 						ValueLabel.TextColor3 = newValue and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(255, 100, 100)
+						StatusIndicator.BackgroundColor3 = newValue and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 100, 100)
 					else
+						-- Default text mode
 						ValueLabel.Text = tostring(newValue)
+						ValueLabel.TextColor3 = Color3.new(1, 1, 1)
 					end
 
 					LiveDisplay.Value = newValue
