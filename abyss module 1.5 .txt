@@ -1,0 +1,2285 @@
+-- Abyss UI Library - Enhanced Version with Fixed Layout & Features
+-- Usage: local AbyssUI = require(script.AbyssUI)
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local CoreGui = game:GetService("CoreGui")
+local HttpService = game:GetService("HttpService")
+
+local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
+
+-- Library Table
+local Library = {
+	Theme = {
+		Accent = Color3.fromHex("#7885f5"),
+		Outline = Color3.fromHex("#000005"),
+		Inline = Color3.fromHex("#323232"),
+		LightContrast = Color3.fromHex("#202020"),
+		DarkContrast = Color3.fromHex("#191919"),
+		Text = Color3.fromHex("#e8e8e8"),
+		TextInactive = Color3.fromHex("#aaaaaa")
+	},
+
+	-- Pre-made themes
+	Themes = {
+		Default = {
+			Accent = Color3.fromHex("#7885f5"),
+			Outline = Color3.fromHex("#000005"),
+			Inline = Color3.fromHex("#323232"),
+			LightContrast = Color3.fromHex("#202020"),
+			DarkContrast = Color3.fromHex("#191919"),
+			Text = Color3.fromHex("#e8e8e8"),
+			TextInactive = Color3.fromHex("#aaaaaa")
+		},
+		Dark = {
+			Accent = Color3.fromRGB(100, 100, 255),
+			Outline = Color3.fromRGB(0, 0, 0),
+			Inline = Color3.fromRGB(40, 40, 40),
+			LightContrast = Color3.fromRGB(30, 30, 30),
+			DarkContrast = Color3.fromRGB(20, 20, 20),
+			Text = Color3.fromRGB(255, 255, 255),
+			TextInactive = Color3.fromRGB(150, 150, 150)
+		},
+		Purple = {
+			Accent = Color3.fromRGB(150, 100, 255),
+			Outline = Color3.fromRGB(50, 0, 100),
+			Inline = Color3.fromRGB(60, 40, 80),
+			LightContrast = Color3.fromRGB(40, 20, 60),
+			DarkContrast = Color3.fromRGB(30, 10, 50),
+			Text = Color3.fromRGB(240, 220, 255),
+			TextInactive = Color3.fromRGB(180, 160, 200)
+		},
+		Green = {
+			Accent = Color3.fromRGB(100, 255, 150),
+			Outline = Color3.fromRGB(0, 50, 20),
+			Inline = Color3.fromRGB(30, 50, 35),
+			LightContrast = Color3.fromRGB(20, 40, 25),
+			DarkContrast = Color3.fromRGB(15, 30, 20),
+			Text = Color3.fromRGB(220, 255, 230),
+			TextInactive = Color3.fromRGB(160, 200, 170)
+		},
+		Red = {
+			Accent = Color3.fromRGB(255, 80, 80),
+			Outline = Color3.fromRGB(100, 0, 0),
+			Inline = Color3.fromRGB(60, 30, 30),
+			LightContrast = Color3.fromRGB(50, 20, 20),
+			DarkContrast = Color3.fromRGB(40, 15, 15),
+			Text = Color3.fromRGB(255, 220, 220),
+			TextInactive = Color3.fromRGB(200, 160, 160)
+		},
+		Blue = {
+			Accent = Color3.fromRGB(80, 150, 255),
+			Outline = Color3.fromRGB(0, 50, 100),
+			Inline = Color3.fromRGB(30, 40, 60),
+			LightContrast = Color3.fromRGB(20, 30, 50),
+			DarkContrast = Color3.fromRGB(15, 25, 40),
+			Text = Color3.fromRGB(220, 230, 255),
+			TextInactive = Color3.fromRGB(160, 170, 200)
+		},
+		Orange = {
+			Accent = Color3.fromRGB(255, 165, 0),
+			Outline = Color3.fromRGB(139, 69, 19),
+			Inline = Color3.fromRGB(60, 45, 30),
+			LightContrast = Color3.fromRGB(50, 35, 20),
+			DarkContrast = Color3.fromRGB(40, 25, 15),
+			Text = Color3.fromRGB(255, 235, 205),
+			TextInactive = Color3.fromRGB(200, 180, 160)
+		},
+		Pink = {
+			Accent = Color3.fromRGB(255, 105, 180),
+			Outline = Color3.fromRGB(139, 69, 139),
+			Inline = Color3.fromRGB(60, 40, 60),
+			LightContrast = Color3.fromRGB(50, 30, 50),
+			DarkContrast = Color3.fromRGB(40, 20, 40),
+			Text = Color3.fromRGB(255, 220, 255),
+			TextInactive = Color3.fromRGB(200, 160, 200)
+		}
+	},
+
+	Flags = {},
+	Items = {},
+	Connections = {},
+	WindowVisible = true,
+	ScreenGui = nil,
+	WindowConfig = {},
+	LiveUpdateElements = {},
+	CharacterConnection = nil,
+
+	-- Keybind settings
+	ToggleKeybind = Enum.KeyCode.LeftControl, -- Customizable toggle key
+	ToggleKeyName = "Left Ctrl", -- Display name
+	FixedToggleKeybind = Enum.KeyCode.RightControl, -- Fixed Right Ctrl (cannot be changed)
+	FixedToggleKeyName = "Right Ctrl" -- Fixed display name
+}
+
+-- Utility Functions
+local Utility = {}
+
+function Utility.CreateElement(elementType, properties)
+	local element = Instance.new(elementType)
+	for property, value in pairs(properties) do
+		element[property] = value
+	end
+	return element
+end
+
+function Utility.CreateGradient(parent, rotation, colors)
+	local gradient = Instance.new("UIGradient")
+	gradient.Rotation = rotation or 0
+	gradient.Color = colors or ColorSequence.new{
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(40, 40, 40)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 20))
+	}
+	gradient.Parent = parent
+	return gradient
+end
+
+function Utility.CreateCorner(parent, size)
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, size or 4)
+	corner.Parent = parent
+	return corner
+end
+
+function Utility.CreateStroke(parent, thickness, color, transparency)
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = thickness or 1
+	stroke.Color = color or Library.Theme.Outline
+	stroke.Transparency = transparency or 0
+	stroke.Parent = parent
+	return stroke
+end
+
+function Utility.AddConnection(signal, callback)
+	local connection = signal:Connect(callback)
+	table.insert(Library.Connections, connection)
+	return connection
+end
+
+function Utility.Tween(object, properties, duration, easingStyle, easingDirection)
+	duration = duration or 0.3
+	easingStyle = easingStyle or Enum.EasingStyle.Quad
+	easingDirection = easingDirection or Enum.EasingDirection.Out
+
+	local tween = TweenService:Create(object, TweenInfo.new(duration, easingStyle, easingDirection), properties)
+	tween:Play()
+	return tween
+end
+
+-- Initialize ScreenGui
+function Library:Init()
+	if Library.ScreenGui then return end
+
+	-- Create ScreenGui
+	Library.ScreenGui = Instance.new("ScreenGui")
+	Library.ScreenGui.Name = "AbyssUI"
+	Library.ScreenGui.ResetOnSpawn = false -- Never reset on spawn!
+	Library.ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+	-- Try to parent to CoreGui, fallback to PlayerGui
+	local success, err = pcall(function()
+		Library.ScreenGui.Parent = CoreGui
+	end)
+	if not success then
+		Library.ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+	end
+
+	-- Toggle visibility with dual keybinds (customizable + fixed)
+	Utility.AddConnection(UserInputService.InputBegan, function(input)
+		if input.KeyCode == Library.ToggleKeybind or input.KeyCode == Library.FixedToggleKeybind then
+			Library:ChangeVisible(not Library.WindowVisible)
+		end
+	end)
+
+	-- No auto-respawn system - UI persists through death
+end
+
+-- Live Update System
+function Library:RegisterLiveUpdate(element, updateFunc)
+	table.insert(Library.LiveUpdateElements, {
+		Element = element,
+		UpdateFunction = updateFunc
+	})
+end
+
+function Library:StartLiveUpdates()
+	-- Update loop 
+	task.spawn(function()
+		while Library.ScreenGui and Library.ScreenGui.Parent do
+			for i, updateData in pairs(Library.LiveUpdateElements) do
+				if updateData.Element and updateData.Element.Parent then
+					pcall(updateData.UpdateFunction)
+				else
+					table.remove(Library.LiveUpdateElements, i)
+				end
+			end
+			task.wait(0.1)
+		end
+	end)
+end
+
+-- Main Library Functions
+function Library:ChangeVisible(state)
+	Library.WindowVisible = state
+	if Library.ScreenGui then
+		Library.ScreenGui.Enabled = state
+	end
+end
+
+-- Set custom keybind (only for the customizable one)
+function Library:SetToggleKeybind(keyCode, displayName)
+	Library.ToggleKeybind = keyCode
+	Library.ToggleKeyName = displayName or tostring(keyCode):gsub("Enum.KeyCode.", "")
+end
+
+-- Apply pre-made theme
+function Library:SetTheme(themeName)
+	if Library.Themes[themeName] then
+		for property, color in pairs(Library.Themes[themeName]) do
+			Library.Theme[property] = color
+		end
+		return true
+	else
+		warn("Theme '" .. themeName .. "' not found!")
+		return false
+	end
+end
+
+-- Update custom theme
+function Library:UpdateTheme(config)
+	for property, color in pairs(config) do
+		if Library.Theme[property] then
+			Library.Theme[property] = color
+		end
+	end
+end
+
+function Library:SelfDestruct()
+	for _, connection in pairs(Library.Connections) do
+		if connection then
+			connection:Disconnect()
+		end
+	end
+	if Library.CharacterConnection then
+		Library.CharacterConnection:Disconnect()
+	end
+	if Library.ScreenGui then
+		Library.ScreenGui:Destroy()
+		Library.ScreenGui = nil
+	end
+	Library.LiveUpdateElements = {}
+end
+
+-- Window Creation
+function Library:Window(options)
+	-- Default options
+	local config = {
+		Title = options.Title or "Abyss UI",
+		Size = options.Size or {X = 550, Y = 400},
+		CloseButton = options.CloseButton ~= false,
+		ResetOnSpawn = false -- Always false for persistent UI
+	}
+
+	-- Store config
+	Library.WindowConfig = config
+
+	-- Initialize if not already done
+	self:Init()
+
+	-- Update ResetOnSpawn setting
+	if Library.ScreenGui then
+		Library.ScreenGui.ResetOnSpawn = false -- Force persistent UI
+	end
+
+	local Window = {
+		Tabs = {},
+		CurrentTab = nil,
+		Notifications = {},
+		Keybinds = {},
+		Config = config
+	}
+
+	-- Main Window Frame
+	local MainFrame = Utility.CreateElement("Frame", {
+		Name = "MainWindow",
+		Size = UDim2.new(0, config.Size.X, 0, config.Size.Y),
+		Position = UDim2.new(0.5, -config.Size.X/2, 0.5, -config.Size.Y/2),
+		BackgroundColor3 = Library.Theme.DarkContrast,
+		BorderSizePixel = 0,
+		Parent = Library.ScreenGui
+	})
+
+	-- Add shadow effect
+	local Shadow = Utility.CreateElement("Frame", {
+		Name = "Shadow",
+		Size = UDim2.new(1, 10, 1, 10),
+		Position = UDim2.new(0, -5, 0, -5),
+		BackgroundColor3 = Color3.new(0, 0, 0),
+		BackgroundTransparency = 0.8,
+		BorderSizePixel = 0,
+		Parent = MainFrame,
+		ZIndex = 1
+	})
+	Utility.CreateCorner(Shadow, 8)
+
+	-- Window Outline
+	local Outline = Utility.CreateElement("Frame", {
+		Name = "Outline",
+		Size = UDim2.new(1, 2, 1, 2),
+		Position = UDim2.new(0, -1, 0, -1),
+		BackgroundColor3 = Library.Theme.Outline,
+		BorderSizePixel = 0,
+		Parent = MainFrame,
+		ZIndex = 2
+	})
+	Utility.CreateCorner(Outline, 6)
+
+	-- Main frame corner
+	Utility.CreateCorner(MainFrame, 5)
+
+	-- Background gradient
+	Utility.CreateGradient(MainFrame, 90, ColorSequence.new{
+		ColorSequenceKeypoint.new(0, Library.Theme.DarkContrast),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(15, 15, 15))
+	})
+
+	-- Accent Border
+	local AccentBorder = Utility.CreateElement("Frame", {
+		Name = "AccentBorder",
+		Size = UDim2.new(1, 0, 0, 2),
+		Position = UDim2.new(0, 0, 0, 0),
+		BackgroundColor3 = Library.Theme.Accent,
+		BorderSizePixel = 0,
+		Parent = MainFrame,
+		ZIndex = 4
+	})
+	Utility.CreateCorner(AccentBorder, 5)
+
+	-- Accent gradient
+	Utility.CreateGradient(AccentBorder, 0, ColorSequence.new{
+		ColorSequenceKeypoint.new(0, Library.Theme.Accent),
+		ColorSequenceKeypoint.new(0.5, Color3.fromRGB(150, 150, 255)),
+		ColorSequenceKeypoint.new(1, Library.Theme.Accent)
+	})
+
+	-- Title Bar
+	local TitleBar = Utility.CreateElement("Frame", {
+		Name = "TitleBar",
+		Size = UDim2.new(1, 0, 0, 35),
+		Position = UDim2.new(0, 0, 0, 2),
+		BackgroundColor3 = Library.Theme.LightContrast,
+		BorderSizePixel = 0,
+		Parent = MainFrame,
+		ZIndex = 3
+	})
+	Utility.CreateCorner(TitleBar, 5)
+
+	-- Title bar gradient
+	Utility.CreateGradient(TitleBar, 90, ColorSequence.new{
+		ColorSequenceKeypoint.new(0, Library.Theme.LightContrast),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(40, 40, 40))
+	})
+
+	-- Logo/Icon placeholder
+	local LogoFrame = Utility.CreateElement("Frame", {
+		Name = "Logo",
+		Size = UDim2.new(0, 25, 0, 25),
+		Position = UDim2.new(0, 8, 0, 5),
+		BackgroundColor3 = Library.Theme.Accent,
+		BorderSizePixel = 0,
+		Parent = TitleBar,
+		ZIndex = 5
+	})
+	Utility.CreateCorner(LogoFrame, 3)
+
+	local LogoText = Utility.CreateElement("TextLabel", {
+		Name = "LogoText",
+		Size = UDim2.new(1, 0, 1, 0),
+		BackgroundTransparency = 1,
+		Text = "A",
+		TextColor3 = Color3.new(1, 1, 1),
+		TextSize = 16,
+		Font = Enum.Font.GothamBold,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		TextYAlignment = Enum.TextYAlignment.Center,
+		Parent = LogoFrame,
+		ZIndex = 6
+	})
+
+	-- Title Label
+	local TitleLabel = Utility.CreateElement("TextLabel", {
+		Name = "Title",
+		Size = UDim2.new(1, config.CloseButton and -100 or -50, 1, 0),
+		Position = UDim2.new(0, 40, 0, 0),
+		BackgroundTransparency = 1,
+		Text = config.Title,
+		TextColor3 = Library.Theme.Text,
+		TextSize = 14,
+		Font = Enum.Font.GothamSemibold,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextYAlignment = Enum.TextYAlignment.Center,
+		Parent = TitleBar,
+		ZIndex = 4
+	})
+
+	-- Close button (conditional)
+	if config.CloseButton then
+		local CloseButton = Utility.CreateElement("TextButton", {
+			Name = "CloseButton",
+			Size = UDim2.new(0, 25, 0, 25),
+			Position = UDim2.new(1, -33, 0, 5),
+			BackgroundColor3 = Color3.fromRGB(255, 60, 60),
+			BorderSizePixel = 0,
+			Text = "×",
+			TextColor3 = Color3.new(1, 1, 1),
+			TextSize = 16,
+			Font = Enum.Font.GothamBold,
+			Parent = TitleBar,
+			ZIndex = 5
+		})
+		Utility.CreateCorner(CloseButton, 3)
+
+		Utility.AddConnection(CloseButton.MouseButton1Click, function()
+			Library:ChangeVisible(false)
+		end)
+
+		-- Add hover effect for close button
+		Utility.AddConnection(CloseButton.MouseEnter, function()
+			Utility.Tween(CloseButton, {BackgroundColor3 = Color3.fromRGB(255, 80, 80)}, 0.2)
+		end)
+
+		Utility.AddConnection(CloseButton.MouseLeave, function()
+			Utility.Tween(CloseButton, {BackgroundColor3 = Color3.fromRGB(255, 60, 60)}, 0.2)
+		end)
+	end
+
+	-- Tab Container
+	local TabContainer = Utility.CreateElement("Frame", {
+		Name = "TabContainer",
+		Size = UDim2.new(1, -10, 0, 30),
+		Position = UDim2.new(0, 5, 0, 42),
+		BackgroundColor3 = Library.Theme.Inline,
+		BorderSizePixel = 0,
+		Parent = MainFrame,
+		ZIndex = 3
+	})
+	Utility.CreateCorner(TabContainer, 4)
+	Utility.CreateStroke(TabContainer, 1, Library.Theme.Outline, 0.5)
+
+	-- Tab container gradient
+	Utility.CreateGradient(TabContainer, 90, ColorSequence.new{
+		ColorSequenceKeypoint.new(0, Library.Theme.Inline),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(40, 40, 40))
+	})
+
+	local ContentFrame = Utility.CreateElement("Frame", {
+		Name = "Content",
+		Size = UDim2.new(1, -20, 1, -90),
+		Position = UDim2.new(0, 10, 0, 80),
+		BackgroundColor3 = Library.Theme.LightContrast,
+		BorderSizePixel = 0,
+		Parent = MainFrame,
+		ZIndex = 3
+	})
+	Utility.CreateCorner(ContentFrame, 5)
+	Utility.CreateStroke(ContentFrame, 1, Library.Theme.Outline, 0.3)
+
+	Utility.CreateGradient(ContentFrame, 90, ColorSequence.new{
+		ColorSequenceKeypoint.new(0, Library.Theme.LightContrast),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(35, 35, 35))
+	})
+
+	-- Dragging functionality
+	local dragging = false
+	local dragStart = nil
+	local startPos = nil
+
+	Utility.AddConnection(TitleBar.InputBegan, function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = true
+			dragStart = input.Position
+			startPos = MainFrame.Position
+		end
+	end)
+
+	Utility.AddConnection(UserInputService.InputChanged, function(input)
+		if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+			local delta = input.Position - dragStart
+			MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+		end
+	end)
+
+	Utility.AddConnection(UserInputService.InputEnded, function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = false
+		end
+	end)
+
+	-- Window Functions
+	function Window:Tab(tabName)
+		local Tab = {
+			Name = tabName,
+			Sections = {},
+			Active = false,
+			LeftSections = {},
+			RightSections = {}
+		}
+
+		local TabButton = Utility.CreateElement("TextButton", {
+			Name = tabName,
+			Size = UDim2.new(0, 100, 1, -4),
+			Position = UDim2.new(0, #Window.Tabs * 105 + 5, 0, 2),
+			BackgroundColor3 = Library.Theme.DarkContrast,
+			BorderSizePixel = 0,
+			Text = tabName,
+			TextColor3 = Library.Theme.TextInactive,
+			TextSize = 12,
+			Font = Enum.Font.GothamSemibold,
+			Parent = TabContainer,
+			ZIndex = 4
+		})
+		Utility.CreateCorner(TabButton, 3)
+
+		Utility.AddConnection(TabButton.MouseEnter, function()
+			if not Tab.Active then
+				Utility.Tween(TabButton, {BackgroundColor3 = Library.Theme.LightContrast}, 0.2)
+			end
+		end)
+
+		Utility.AddConnection(TabButton.MouseLeave, function()
+			if not Tab.Active then
+				Utility.Tween(TabButton, {BackgroundColor3 = Library.Theme.DarkContrast}, 0.2)
+			end
+		end)
+
+		local TabContent = Utility.CreateElement("ScrollingFrame", {
+			Name = tabName .. "Content",
+			Size = UDim2.new(1, 0, 1, 0),
+			Position = UDim2.new(0, 0, 0, 0),
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			ScrollBarThickness = 4,
+			ScrollBarImageColor3 = Library.Theme.Accent,
+			CanvasSize = UDim2.new(0, 0, 0, 0),
+			Visible = false,
+			Parent = ContentFrame,
+			ZIndex = 4
+		})
+
+		-- Create left and right containers for proper section layout
+		local LeftContainer = Utility.CreateElement("Frame", {
+			Name = "LeftContainer",
+			Size = UDim2.new(0.48, -5, 1, 0),
+			Position = UDim2.new(0, 0, 0, 0),
+			BackgroundTransparency = 1,
+			Parent = TabContent,
+			ZIndex = 5
+		})
+
+		local RightContainer = Utility.CreateElement("Frame", {
+			Name = "RightContainer", 
+			Size = UDim2.new(0.48, -5, 1, 0),
+			Position = UDim2.new(0.52, 0, 0, 0),
+			BackgroundTransparency = 1,
+			Parent = TabContent,
+			ZIndex = 5
+		})
+
+		local LeftLayout = Instance.new("UIListLayout")
+		LeftLayout.SortOrder = Enum.SortOrder.LayoutOrder
+		LeftLayout.Padding = UDim.new(0, 10)
+		LeftLayout.FillDirection = Enum.FillDirection.Vertical
+		LeftLayout.Parent = LeftContainer
+
+		local RightLayout = Instance.new("UIListLayout")
+		RightLayout.SortOrder = Enum.SortOrder.LayoutOrder
+		RightLayout.Padding = UDim.new(0, 10)
+		RightLayout.FillDirection = Enum.FillDirection.Vertical
+		RightLayout.Parent = RightContainer
+
+		-- Update canvas size based on both containers
+		local function updateCanvasSize()
+			local leftSize = LeftLayout.AbsoluteContentSize.Y
+			local rightSize = RightLayout.AbsoluteContentSize.Y
+			local maxSize = math.max(leftSize, rightSize)
+			TabContent.CanvasSize = UDim2.new(0, 0, 0, maxSize + 20)
+		end
+
+		Utility.AddConnection(LeftLayout:GetPropertyChangedSignal("AbsoluteContentSize"), updateCanvasSize)
+		Utility.AddConnection(RightLayout:GetPropertyChangedSignal("AbsoluteContentSize"), updateCanvasSize)
+
+		Utility.AddConnection(TabButton.MouseButton1Click, function()
+			Window:SwitchTab(Tab)
+		end)
+
+		-- Settings Section (Special Section with keybind customization)
+		function Tab:SettingsSection()
+			local SettingsSection = {
+				Name = "UI Settings",
+				Elements = {},
+				Side = "Left"
+			}
+
+			local SectionContainer = Utility.CreateElement("Frame", {
+				Name = "SettingsSectionContainer",
+				Size = UDim2.new(1, 0, 0, 180),
+				BackgroundTransparency = 1,
+				Parent = LeftContainer,
+				ZIndex = 6
+			})
+
+			local SectionFrame = Utility.CreateElement("Frame", {
+				Name = "UISettings",
+				Size = UDim2.new(1, 0, 1, 0),
+				BackgroundColor3 = Library.Theme.DarkContrast,
+				BorderSizePixel = 0,
+				Parent = SectionContainer,
+				ZIndex = 7
+			})
+			Utility.CreateCorner(SectionFrame, 5)
+			Utility.CreateStroke(SectionFrame, 1, Library.Theme.Accent, 0.8)
+
+			-- Special gradient for settings section
+			Utility.CreateGradient(SectionFrame, 45, ColorSequence.new{
+				ColorSequenceKeypoint.new(0, Library.Theme.DarkContrast),
+				ColorSequenceKeypoint.new(0.5, Library.Theme.Accent),
+				ColorSequenceKeypoint.new(1, Library.Theme.DarkContrast)
+			})
+
+			-- Section Header
+			local SectionHeader = Utility.CreateElement("Frame", {
+				Name = "Header",
+				Size = UDim2.new(1, 0, 0, 30),
+				Position = UDim2.new(0, 0, 0, 0),
+				BackgroundColor3 = Library.Theme.Accent,
+				BorderSizePixel = 0,
+				Parent = SectionFrame,
+				ZIndex = 8
+			})
+			Utility.CreateCorner(SectionHeader, 5)
+
+			-- Title
+			local SectionTitle = Utility.CreateElement("TextLabel", {
+				Name = "Title",
+				Size = UDim2.new(1, -15, 1, 0),
+				Position = UDim2.new(0, 10, 0, 0),
+				BackgroundTransparency = 1,
+				Text = "key Settings",
+				TextColor3 = Color3.new(1, 1, 1),
+				TextSize = 12,
+				Font = Enum.Font.GothamBold,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				TextYAlignment = Enum.TextYAlignment.Center,
+				Parent = SectionHeader,
+				ZIndex = 9
+			})
+
+			-- Settings content container
+			local SettingsContainer = Utility.CreateElement("Frame", {
+				Name = "SettingsContainer",
+				Size = UDim2.new(1, -12, 1, -40),
+				Position = UDim2.new(0, 6, 0, 35),
+				BackgroundTransparency = 1,
+				Parent = SectionFrame,
+				ZIndex = 8
+			})
+
+			local SettingsLayout = Instance.new("UIListLayout")
+			SettingsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+			SettingsLayout.Padding = UDim.new(0, 8)
+			SettingsLayout.FillDirection = Enum.FillDirection.Vertical
+			SettingsLayout.Parent = SettingsContainer
+
+			-- Custom keybind display
+			local KeybindDisplay = Utility.CreateElement("Frame", {
+				Name = "KeybindDisplay",
+				Size = UDim2.new(1, 0, 0, 25),
+				BackgroundColor3 = Library.Theme.Inline,
+				BorderSizePixel = 0,
+				Parent = SettingsContainer,
+				ZIndex = 9
+			})
+			Utility.CreateCorner(KeybindDisplay, 3)
+			Utility.CreateStroke(KeybindDisplay, 1, Library.Theme.Accent, 0.5)
+
+			local KeybindLabel = Utility.CreateElement("TextLabel", {
+				Name = "Label",
+				Size = UDim2.new(0.5, -5, 1, 0),
+				Position = UDim2.new(0, 8, 0, 0),
+				BackgroundTransparency = 1,
+				Text = "Custom Key:",
+				TextColor3 = Library.Theme.Text,
+				TextSize = 10,
+				Font = Enum.Font.GothamSemibold,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				TextYAlignment = Enum.TextYAlignment.Center,
+				Parent = KeybindDisplay,
+				ZIndex = 10
+			})
+
+			local KeybindValue = Utility.CreateElement("TextLabel", {
+				Name = "Value",
+				Size = UDim2.new(0.5, -8, 1, 0),
+				Position = UDim2.new(0.5, 0, 0, 0),
+				BackgroundTransparency = 1,
+				Text = Library.ToggleKeyName,
+				TextColor3 = Library.Theme.Accent,
+				TextSize = 10,
+				Font = Enum.Font.GothamBold,
+				TextXAlignment = Enum.TextXAlignment.Right,
+				TextYAlignment = Enum.TextYAlignment.Center,
+				Parent = KeybindDisplay,
+				ZIndex = 10
+			})
+
+			-- Fixed keybind display (Right Ctrl - cannot be changed)
+			local FixedKeybindDisplay = Utility.CreateElement("Frame", {
+				Name = "FixedKeybindDisplay",
+				Size = UDim2.new(1, 0, 0, 25),
+				BackgroundColor3 = Color3.fromRGB(60, 40, 40),
+				BorderSizePixel = 0,
+				Parent = SettingsContainer,
+				ZIndex = 9
+			})
+			Utility.CreateCorner(FixedKeybindDisplay, 3)
+			Utility.CreateStroke(FixedKeybindDisplay, 1, Color3.fromRGB(255, 100, 100), 0.8)
+
+			local FixedKeybindLabel = Utility.CreateElement("TextLabel", {
+				Name = "Label",
+				Size = UDim2.new(0.5, -5, 1, 0),
+				Position = UDim2.new(0, 8, 0, 0),
+				BackgroundTransparency = 1,
+				Text = "Fixed Key:",
+				TextColor3 = Color3.fromRGB(255, 200, 200),
+				TextSize = 10,
+				Font = Enum.Font.GothamSemibold,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				TextYAlignment = Enum.TextYAlignment.Center,
+				Parent = FixedKeybindDisplay,
+				ZIndex = 10
+			})
+
+			local FixedKeybindValue = Utility.CreateElement("TextLabel", {
+				Name = "Value",
+				Size = UDim2.new(0.5, -8, 1, 0),
+				Position = UDim2.new(0.5, 0, 0, 0),
+				BackgroundTransparency = 1,
+				Text = Library.FixedToggleKeyName .. " 🔒",
+				TextColor3 = Color3.fromRGB(255, 100, 100),
+				TextSize = 10,
+				Font = Enum.Font.GothamBold,
+				TextXAlignment = Enum.TextXAlignment.Right,
+				TextYAlignment = Enum.TextYAlignment.Center,
+				Parent = FixedKeybindDisplay,
+				ZIndex = 10
+			})
+
+			-- Default button
+			local DefaultButton = Utility.CreateElement("TextButton", {
+				Name = "DefaultButton",
+				Size = UDim2.new(1, 0, 0, 25),
+				BackgroundColor3 = Library.Theme.LightContrast,
+				BorderSizePixel = 0,
+				Text = "reset to Default",
+				TextColor3 = Library.Theme.Text,
+				TextSize = 10,
+				Font = Enum.Font.GothamSemibold,
+				Parent = SettingsContainer,
+				ZIndex = 9
+			})
+			Utility.CreateCorner(DefaultButton, 3)
+
+			-- Change keybind button
+			local ChangeButton = Utility.CreateElement("TextButton", {
+				Name = "ChangeButton",
+				Size = UDim2.new(1, 0, 0, 25),
+				Position = UDim2.new(0.52, 0, 0, 0),
+				BackgroundColor3 = Library.Theme.LightContrast,
+				BorderSizePixel = 0,
+				Text = "Change Key",
+				TextColor3 = Library.Theme.Text,
+				TextSize = 10,
+				Font = Enum.Font.GothamSemibold,
+				Parent = SettingsContainer,
+				ZIndex = 9
+			})
+			Utility.CreateCorner(ChangeButton, 3)
+
+			-- Button layout for side-by-side positioning
+			local ButtonLayout = Instance.new("UIListLayout")
+			ButtonLayout.SortOrder = Enum.SortOrder.LayoutOrder
+			ButtonLayout.FillDirection = Enum.FillDirection.Horizontal
+			ButtonLayout.Padding = UDim.new(0, 4)
+			ButtonLayout.Parent = SettingsContainer
+
+			-- Set layout orders
+			KeybindDisplay.LayoutOrder = 1
+			FixedKeybindDisplay.LayoutOrder = 2
+			DefaultButton.LayoutOrder = 3
+			ChangeButton.LayoutOrder = 3
+
+			-- Default button functionality
+			Utility.AddConnection(DefaultButton.MouseButton1Click, function()
+				Library:SetToggleKeybind(Enum.KeyCode.LeftControl, "Left Ctrl")
+				KeybindValue.Text = Library.ToggleKeyName
+
+				-- Animation
+				Utility.Tween(DefaultButton, {BackgroundColor3 = Library.Theme.Accent}, 0.1)
+				task.wait(0.1)
+				Utility.Tween(DefaultButton, {BackgroundColor3 = Library.Theme.LightContrast}, 0.2)
+
+				Window:SendNotification("Info", "Custom toggle key reset to default (Left Ctrl)", 2)
+			end)
+
+			-- Change keybind functionality
+			local listeningForKey = false
+			Utility.AddConnection(ChangeButton.MouseButton1Click, function()
+				if listeningForKey then return end
+
+				listeningForKey = true
+				ChangeButton.Text = "⏳ Press any key..."
+				ChangeButton.BackgroundColor3 = Library.Theme.Accent
+
+				local connection
+				connection = UserInputService.InputBegan:Connect(function(input)
+					if input.UserInputType == Enum.UserInputType.Keyboard then
+						-- Prevent changing to Right Ctrl (reserved for fixed keybind)
+						if input.KeyCode == Enum.KeyCode.RightControl then
+							Window:SendNotification("Warning", "Right Ctrl is reserved as fixed keybind!", 3)
+							ChangeButton.Text = "🔧 Change Key"
+							ChangeButton.BackgroundColor3 = Library.Theme.LightContrast
+							listeningForKey = false
+							connection:Disconnect()
+							return
+						end
+
+						local keyName = tostring(input.KeyCode):gsub("Enum.KeyCode.", "")
+
+						-- Special key names for better display
+						local keyDisplayNames = {
+							LeftControl = "Left Ctrl",
+							LeftShift = "Left Shift",
+							RightShift = "Right Shift",
+							LeftAlt = "Left Alt",
+							RightAlt = "Right Alt",
+							Space = "Spacebar",
+							Return = "Enter",
+							BackSlash = "\\",
+							Slash = "/",
+							Period = ".",
+							Comma = ",",
+							Semicolon = ";",
+							Quote = "'",
+							LeftBracket = "[",
+							RightBracket = "]",
+							Minus = "-",
+							Equals = "=",
+							BackQuote = "`"
+						}
+
+						local displayName = keyDisplayNames[keyName] or keyName
+						Library:SetToggleKeybind(input.KeyCode, displayName)
+						KeybindValue.Text = Library.ToggleKeyName
+
+						ChangeButton.Text = "🔧 Change Key"
+						ChangeButton.BackgroundColor3 = Library.Theme.LightContrast
+						listeningForKey = false
+
+						Window:SendNotification("Success", "Custom toggle key changed to: " .. displayName, 3)
+						connection:Disconnect()
+					end
+				end)
+
+				-- Timeout after 10 seconds
+				task.spawn(function()
+					task.wait(10)
+					if listeningForKey then
+						listeningForKey = false
+						ChangeButton.Text = "🔧 Change Key"
+						ChangeButton.BackgroundColor3 = Library.Theme.LightContrast
+						connection:Disconnect()
+						Window:SendNotification("Warning", "Key change timeout", 2)
+					end
+				end)
+			end)
+
+			-- Hover effects
+			Utility.AddConnection(DefaultButton.MouseEnter, function()
+				Utility.Tween(DefaultButton, {BackgroundColor3 = Color3.fromRGB(60, 60, 80)}, 0.2)
+			end)
+
+			Utility.AddConnection(DefaultButton.MouseLeave, function()
+				Utility.Tween(DefaultButton, {BackgroundColor3 = Library.Theme.LightContrast}, 0.2)
+			end)
+
+			Utility.AddConnection(ChangeButton.MouseEnter, function()
+				if not listeningForKey then
+					Utility.Tween(ChangeButton, {BackgroundColor3 = Color3.fromRGB(60, 60, 80)}, 0.2)
+				end
+			end)
+
+			Utility.AddConnection(ChangeButton.MouseLeave, function()
+				if not listeningForKey then
+					Utility.Tween(ChangeButton, {BackgroundColor3 = Library.Theme.LightContrast}, 0.2)
+				end
+			end)
+
+			table.insert(Tab.Sections, SettingsSection)
+			return SettingsSection
+		end
+
+		-- Theme Selector Section (Special Section)
+		function Tab:ThemeSection()
+			local ThemeSection = {
+				Name = "Theme Selector",
+				Elements = {},
+				Side = "Right"
+			}
+
+			local SectionContainer = Utility.CreateElement("Frame", {
+				Name = "ThemeSelectorContainer",
+				Size = UDim2.new(1, 0, 0, 120),
+				BackgroundTransparency = 1,
+				Parent = RightContainer, -- Place on right side
+				ZIndex = 6
+			})
+
+			local SectionFrame = Utility.CreateElement("Frame", {
+				Name = "ThemeSelector",
+				Size = UDim2.new(1, 0, 1, 0),
+				BackgroundColor3 = Library.Theme.DarkContrast,
+				BorderSizePixel = 0,
+				Parent = SectionContainer,
+				ZIndex = 7
+			})
+			Utility.CreateCorner(SectionFrame, 5)
+			Utility.CreateStroke(SectionFrame, 1, Library.Theme.Accent, 0.8)
+
+			-- Special gradient for theme section
+			Utility.CreateGradient(SectionFrame, 45, ColorSequence.new{
+				ColorSequenceKeypoint.new(0, Library.Theme.DarkContrast),
+				ColorSequenceKeypoint.new(0.5, Library.Theme.Accent),
+				ColorSequenceKeypoint.new(1, Library.Theme.DarkContrast)
+			})
+
+			-- Section Header
+			local SectionHeader = Utility.CreateElement("Frame", {
+				Name = "Header",
+				Size = UDim2.new(1, 0, 0, 30),
+				Position = UDim2.new(0, 0, 0, 0),
+				BackgroundColor3 = Library.Theme.Accent,
+				BorderSizePixel = 0,
+				Parent = SectionFrame,
+				ZIndex = 8
+			})
+			Utility.CreateCorner(SectionHeader, 5)
+
+			-- Title
+			local SectionTitle = Utility.CreateElement("TextLabel", {
+				Name = "Title",
+				Size = UDim2.new(1, -15, 1, 0),
+				Position = UDim2.new(0, 10, 0, 0),
+				BackgroundTransparency = 1,
+				Text = "🎨 Theme Selector",
+				TextColor3 = Color3.new(1, 1, 1),
+				TextSize = 12,
+				Font = Enum.Font.GothamBold,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				TextYAlignment = Enum.TextYAlignment.Center,
+				Parent = SectionHeader,
+				ZIndex = 9
+			})
+
+			-- Theme buttons container
+			local ThemeContainer = Utility.CreateElement("Frame", {
+				Name = "ThemeContainer",
+				Size = UDim2.new(1, -12, 1, -40),
+				Position = UDim2.new(0, 6, 0, 35),
+				BackgroundTransparency = 1,
+				Parent = SectionFrame,
+				ZIndex = 8
+			})
+
+			local ThemeLayout = Instance.new("UIGridLayout")
+			ThemeLayout.SortOrder = Enum.SortOrder.LayoutOrder
+			ThemeLayout.CellPadding = UDim2.new(0, 5, 0, 5)
+			ThemeLayout.CellSize = UDim2.new(0, 60, 0, 20)
+			ThemeLayout.FillDirection = Enum.FillDirection.Horizontal
+			ThemeLayout.Parent = ThemeContainer
+
+			-- Create theme buttons
+			local themeNames = {"Default", "Dark", "Purple", "Green", "Red", "Blue", "Orange", "Pink"}
+			for i, themeName in pairs(themeNames) do
+				local themeData = Library.Themes[themeName]
+
+				local ThemeButton = Utility.CreateElement("TextButton", {
+					Name = themeName,
+					Size = UDim2.new(0, 60, 0, 20),
+					BackgroundColor3 = themeData.Accent,
+					BorderSizePixel = 0,
+					Text = themeName,
+					TextColor3 = Color3.new(1, 1, 1),
+					TextSize = 9,
+					Font = Enum.Font.GothamSemibold,
+					Parent = ThemeContainer,
+					ZIndex = 9
+				})
+				Utility.CreateCorner(ThemeButton, 3)
+
+				-- Gradient for theme button
+				Utility.CreateGradient(ThemeButton, 0, ColorSequence.new{
+					ColorSequenceKeypoint.new(0, themeData.Accent),
+					ColorSequenceKeypoint.new(1, Color3.fromRGB(
+						math.max(0, themeData.Accent.R * 255 - 50),
+						math.max(0, themeData.Accent.G * 255 - 50),
+						math.max(0, themeData.Accent.B * 255 - 50)
+						))
+				})
+
+				Utility.AddConnection(ThemeButton.MouseButton1Click, function()
+					Library:SetTheme(themeName)
+					Window:SendNotification("Info", "Theme changed to " .. themeName, 2)
+
+					-- Update UI immediately
+					Window:RefreshUI()
+				end)
+
+				Utility.AddConnection(ThemeButton.MouseEnter, function()
+					Utility.Tween(ThemeButton, {Size = UDim2.new(0, 65, 0, 22)}, 0.2)
+				end)
+
+				Utility.AddConnection(ThemeButton.MouseLeave, function()
+					Utility.Tween(ThemeButton, {Size = UDim2.new(0, 60, 0, 20)}, 0.2)
+				end)
+			end
+
+			table.insert(Tab.Sections, ThemeSection)
+			return ThemeSection
+		end
+
+		function Tab:Section(sectionName, side)
+			local Section = {
+				Name = sectionName,
+				Elements = {},
+				Side = side or "Left"
+			}
+
+			-- Choose the correct container based on side
+			local targetContainer = Section.Side == "Right" and RightContainer or LeftContainer
+
+			local SectionContainer = Utility.CreateElement("Frame", {
+				Name = sectionName .. "Container",
+				Size = UDim2.new(1, 0, 0, 200),
+				BackgroundTransparency = 1,
+				Parent = targetContainer,
+				ZIndex = 6
+			})
+
+			-- Section Frame
+			local SectionFrame = Utility.CreateElement("Frame", {
+				Name = sectionName,
+				Size = UDim2.new(1, 0, 1, 0),
+				BackgroundColor3 = Library.Theme.DarkContrast,
+				BorderSizePixel = 0,
+				Parent = SectionContainer,
+				ZIndex = 7
+			})
+			Utility.CreateCorner(SectionFrame, 5)
+			Utility.CreateStroke(SectionFrame, 1, Library.Theme.Outline, 0.3)
+
+			-- Section gradient
+			Utility.CreateGradient(SectionFrame, 90, ColorSequence.new{
+				ColorSequenceKeypoint.new(0, Library.Theme.DarkContrast),
+				ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 20))
+			})
+
+			-- Section Header
+			local SectionHeader = Utility.CreateElement("Frame", {
+				Name = "Header",
+				Size = UDim2.new(1, 0, 0, 30),
+				Position = UDim2.new(0, 0, 0, 0),
+				BackgroundColor3 = Library.Theme.LightContrast,
+				BorderSizePixel = 0,
+				Parent = SectionFrame,
+				ZIndex = 8
+			})
+			Utility.CreateCorner(SectionHeader, 5)
+
+			-- Header gradient
+			Utility.CreateGradient(SectionHeader, 0, ColorSequence.new{
+				ColorSequenceKeypoint.new(0, Library.Theme.LightContrast),
+				ColorSequenceKeypoint.new(1, Color3.fromRGB(45, 45, 45))
+			})
+
+			-- Section Title
+			local SectionTitle = Utility.CreateElement("TextLabel", {
+				Name = "Title",
+				Size = UDim2.new(1, -15, 1, 0),
+				Position = UDim2.new(0, 10, 0, 0),
+				BackgroundTransparency = 1,
+				Text = sectionName,
+				TextColor3 = Library.Theme.Text,
+				TextSize = 12,
+				Font = Enum.Font.GothamSemibold,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				TextYAlignment = Enum.TextYAlignment.Center,
+				Parent = SectionHeader,
+				ZIndex = 9
+			})
+
+			-- Accent Line
+			local AccentLine = Utility.CreateElement("Frame", {
+				Name = "AccentLine",
+				Size = UDim2.new(1, 0, 0, 2),
+				Position = UDim2.new(0, 0, 1, -2),
+				BackgroundColor3 = Library.Theme.Accent,
+				BorderSizePixel = 0,
+				Parent = SectionHeader,
+				ZIndex = 9
+			})
+
+			-- Accent line gradient
+			Utility.CreateGradient(AccentLine, 0, ColorSequence.new{
+				ColorSequenceKeypoint.new(0, Library.Theme.Accent),
+				ColorSequenceKeypoint.new(0.5, Color3.fromRGB(150, 150, 255)),
+				ColorSequenceKeypoint.new(1, Library.Theme.Accent)
+			})
+
+			-- Section Content
+			local SectionContent = Utility.CreateElement("Frame", {
+				Name = "Content",
+				Size = UDim2.new(1, -12, 1, -40),
+				Position = UDim2.new(0, 6, 0, 35),
+				BackgroundTransparency = 1,
+				Parent = SectionFrame,
+				ZIndex = 8
+			})
+
+			local ContentLayout = Instance.new("UIListLayout")
+			ContentLayout.SortOrder = Enum.SortOrder.LayoutOrder
+			ContentLayout.Padding = UDim.new(0, 8)
+			ContentLayout.FillDirection = Enum.FillDirection.Vertical
+			ContentLayout.Parent = SectionContent
+
+			-- Live Display Element (for real-time updates)
+			function Section:LiveDisplay(options)
+				local LiveDisplay = {
+					Name = options.Title or "Live Display",
+					Value = options.DefaultValue or "N/A",
+					UpdateFunction = options.UpdateFunction or function() return "N/A" end,
+					ValueType = options.ValueType or "auto", -- "auto", "text", "string", "number", "boolean"
+					Format = options.Format or nil, -- for number formatting like "%.2f"
+					StringStates = options.StringStates or {
+						TrueValue = "Active",
+						FalseValue = "Inactive",
+						CheckFunction = options.CheckFunction -- Function that returns true/false for string states
+					}
+				}
+
+				local DisplayFrame = Utility.CreateElement("Frame", {
+					Name = "LiveDisplay",
+					Size = UDim2.new(1, 0, 0, 35),
+					BackgroundColor3 = Library.Theme.Inline,
+					BorderSizePixel = 0,
+					Parent = SectionContent,
+					ZIndex = 9
+				})
+				Utility.CreateCorner(DisplayFrame, 3)
+				Utility.CreateStroke(DisplayFrame, 1, Library.Theme.Accent, 0.5)
+
+				-- Special gradient for live display
+				Utility.CreateGradient(DisplayFrame, 45, ColorSequence.new{
+					ColorSequenceKeypoint.new(0, Library.Theme.Inline),
+					ColorSequenceKeypoint.new(0.5, Library.Theme.Accent),
+					ColorSequenceKeypoint.new(1, Library.Theme.Inline)
+				})
+
+				local DisplayLabel = Utility.CreateElement("TextLabel", {
+					Name = "Label",
+					Size = UDim2.new(0.6, -5, 1, 0),
+					Position = UDim2.new(0, 8, 0, 0),
+					BackgroundTransparency = 1,
+					Text = LiveDisplay.Name,
+					TextColor3 = Library.Theme.Text,
+					TextSize = 11,
+					Font = Enum.Font.GothamSemibold,
+					TextXAlignment = Enum.TextXAlignment.Left,
+					TextYAlignment = Enum.TextYAlignment.Center,
+					Parent = DisplayFrame,
+					ZIndex = 10
+				})
+
+				local ValueLabel = Utility.CreateElement("TextLabel", {
+					Name = "Value",
+					Size = UDim2.new(0.4, -8, 1, 0),
+					Position = UDim2.new(0.5, 0, 0, 0),
+					BackgroundTransparency = 1,
+					Text = tostring(LiveDisplay.Value),
+					TextColor3 = Color3.new(1, 1, 1),
+					TextSize = 12,
+					Font = Enum.Font.GothamBold,
+					TextXAlignment = Enum.TextXAlignment.Right,
+					TextYAlignment = Enum.TextYAlignment.Center,
+					Parent = DisplayFrame,
+					ZIndex = 10
+				})
+
+				-- Status indicator
+				local StatusIndicator = Utility.CreateElement("Frame", {
+					Name = "Indicator",
+					Size = UDim2.new(0, 8, 0, 8),
+					Position = UDim2.new(1, -15, 0.5, -4),
+					BackgroundColor3 = Color3.fromRGB(0, 255, 0),
+					BorderSizePixel = 0,
+					Parent = DisplayFrame,
+					ZIndex = 11
+				})
+				Utility.CreateCorner(StatusIndicator, 4)
+
+				-- Animated indicator
+				task.spawn(function()
+					while StatusIndicator and StatusIndicator.Parent do
+						Utility.Tween(StatusIndicator, {BackgroundTransparency = 0.5}, 0.8)
+						task.wait(0.8)
+						Utility.Tween(StatusIndicator, {BackgroundTransparency = 0}, 0.8)
+						task.wait(0.8)
+					end
+				end)
+
+				-- Register for live updates
+				Library:RegisterLiveUpdate(DisplayFrame, function()
+					local newValue = LiveDisplay.UpdateFunction()
+
+					if LiveDisplay.ValueType == "string" or (LiveDisplay.ValueType == "auto" and LiveDisplay.StringStates.CheckFunction) then
+						-- String state mode - use CheckFunction to determine true/false
+						if LiveDisplay.StringStates.CheckFunction then
+							local isTrue = LiveDisplay.StringStates.CheckFunction()
+							ValueLabel.Text = isTrue and LiveDisplay.StringStates.TrueValue or LiveDisplay.StringStates.FalseValue
+							ValueLabel.TextColor3 = isTrue and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(255, 100, 100)
+							StatusIndicator.BackgroundColor3 = isTrue and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 100, 100)
+						else
+							ValueLabel.Text = tostring(newValue)
+						end
+					elseif LiveDisplay.ValueType == "number" or (LiveDisplay.ValueType == "auto" and type(newValue) == "number") then
+						if LiveDisplay.Format then
+							ValueLabel.Text = string.format(LiveDisplay.Format, newValue)
+						else
+							ValueLabel.Text = tostring(math.floor(newValue * 100) / 100)
+						end
+						ValueLabel.TextColor3 = Color3.new(1, 1, 1)
+					elseif LiveDisplay.ValueType == "boolean" or (LiveDisplay.ValueType == "auto" and type(newValue) == "boolean") then
+						ValueLabel.Text = newValue and "✓ ON" or "✗ OFF"
+						ValueLabel.TextColor3 = newValue and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(255, 100, 100)
+						StatusIndicator.BackgroundColor3 = newValue and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 100, 100)
+					else
+						-- Default text mode
+						ValueLabel.Text = tostring(newValue)
+						ValueLabel.TextColor3 = Color3.new(1, 1, 1)
+					end
+
+					LiveDisplay.Value = newValue
+				end)
+
+				table.insert(Section.Elements, LiveDisplay)
+				return LiveDisplay
+			end
+
+			-- Section Elements
+			function Section:Toggle(options)
+				local Toggle = {
+					Name = options.Title or "Toggle",
+					State = options.State or false,
+					Callback = options.Callback or function() end,
+					Keybind = options.Keybind or nil
+				}
+
+				Library.Flags[options.Flag or Toggle.Name] = Toggle.State
+
+				local ToggleFrame = Utility.CreateElement("Frame", {
+					Name = "Toggle",
+					Size = UDim2.new(1, 0, 0, 22),
+					BackgroundColor3 = Library.Theme.Inline,
+					BorderSizePixel = 0,
+					Parent = SectionContent,
+					ZIndex = 9
+				})
+				Utility.CreateCorner(ToggleFrame, 3)
+
+				-- Toggle gradient
+				Utility.CreateGradient(ToggleFrame, 0, ColorSequence.new{
+					ColorSequenceKeypoint.new(0, Library.Theme.Inline),
+					ColorSequenceKeypoint.new(1, Color3.fromRGB(60, 60, 60))
+				})
+
+				local ToggleBox = Utility.CreateElement("Frame", {
+					Name = "Box",
+					Size = UDim2.new(0, 14, 0, 14),
+					Position = UDim2.new(0, 6, 0, 4),
+					BackgroundColor3 = Toggle.State and Library.Theme.Accent or Library.Theme.DarkContrast,
+					BorderSizePixel = 0,
+					Parent = ToggleFrame,
+					ZIndex = 10
+				})
+				Utility.CreateCorner(ToggleBox, 2)
+				Utility.CreateStroke(ToggleBox, 1, Library.Theme.Outline, 0.3)
+
+				local CheckMark = Utility.CreateElement("TextLabel", {
+					Name = "Check",
+					Size = UDim2.new(1, 0, 1, 0),
+					BackgroundTransparency = 1,
+					Text = Toggle.State and "✓" or "",
+					TextColor3 = Color3.new(1, 1, 1),
+					TextSize = 10,
+					Font = Enum.Font.GothamBold,
+					TextXAlignment = Enum.TextXAlignment.Center,
+					TextYAlignment = Enum.TextYAlignment.Center,
+					Parent = ToggleBox,
+					ZIndex = 11
+				})
+
+				local ToggleLabel = Utility.CreateElement("TextLabel", {
+					Name = "Label",
+					Size = UDim2.new(1, -30, 1, 0),
+					Position = UDim2.new(0, 26, 0, 0),
+					BackgroundTransparency = 1,
+					Text = Toggle.Name,
+					TextColor3 = Library.Theme.Text,
+					TextSize = 11,
+					Font = Enum.Font.Gotham,
+					TextXAlignment = Enum.TextXAlignment.Left,
+					TextYAlignment = Enum.TextYAlignment.Center,
+					Parent = ToggleFrame,
+					ZIndex = 10
+				})
+
+				local ToggleButton = Utility.CreateElement("TextButton", {
+					Name = "Button",
+					Size = UDim2.new(1, 0, 1, 0),
+					Position = UDim2.new(0, 0, 0, 0),
+					BackgroundTransparency = 1,
+					Text = "",
+					Parent = ToggleFrame,
+					ZIndex = 11
+				})
+
+				function Toggle:Set(state)
+					Toggle.State = state
+					ToggleBox.BackgroundColor3 = state and Library.Theme.Accent or Library.Theme.DarkContrast
+					CheckMark.Text = state and "✓" or ""
+					Library.Flags[options.Flag or Toggle.Name] = state
+					Toggle.Callback(state)
+				end
+
+				-- Add keybind functionality
+				if Toggle.Keybind then
+					Utility.AddConnection(UserInputService.InputBegan, function(input)
+						if input.KeyCode == Toggle.Keybind then
+							Toggle:Set(not Toggle.State)
+						end
+					end)
+				end
+
+				Utility.AddConnection(ToggleButton.MouseButton1Click, function()
+					Toggle:Set(not Toggle.State)
+					-- Add click animation
+					Utility.Tween(ToggleBox, {Size = UDim2.new(0, 12, 0, 12)}, 0.1)
+					task.wait(0.1)
+					Utility.Tween(ToggleBox, {Size = UDim2.new(0, 14, 0, 14)}, 0.1)
+				end)
+
+				-- Hover effects
+				Utility.AddConnection(ToggleButton.MouseEnter, function()
+					Utility.Tween(ToggleFrame, {BackgroundColor3 = Library.Theme.LightContrast}, 0.2)
+				end)
+
+				Utility.AddConnection(ToggleButton.MouseLeave, function()
+					Utility.Tween(ToggleFrame, {BackgroundColor3 = Library.Theme.Inline}, 0.2)
+				end)
+
+				table.insert(Section.Elements, Toggle)
+				return Toggle
+			end
+
+			function Section:Slider(options)
+				local Slider = {
+					Name = options.Title or "Slider",
+					Min = options.Min or 0,
+					Max = options.Max or 100,
+					Default = options.Default or 50,
+					Value = options.Default or 50,
+					Increment = options.Increment or 1,
+					Callback = options.Callback or function() end
+				}
+
+				Library.Flags[options.Flag or Slider.Name] = Slider.Value
+
+				local SliderFrame = Utility.CreateElement("Frame", {
+					Name = "Slider",
+					Size = UDim2.new(1, 0, 0, 70), -- Increased height for input box
+					BackgroundColor3 = Library.Theme.Inline,
+					BorderSizePixel = 0,
+					Parent = SectionContent,
+					ZIndex = 9
+				})
+				Utility.CreateCorner(SliderFrame, 3)
+
+				-- Slider gradient
+				Utility.CreateGradient(SliderFrame, 0, ColorSequence.new{
+					ColorSequenceKeypoint.new(0, Library.Theme.Inline),
+					ColorSequenceKeypoint.new(1, Color3.fromRGB(60, 60, 60))
+				})
+
+				local SliderLabel = Utility.CreateElement("TextLabel", {
+					Name = "Label",
+					Size = UDim2.new(1, -50, 0, 18),
+					Position = UDim2.new(0, 8, 0, 2),
+					BackgroundTransparency = 1,
+					Text = Slider.Name,
+					TextColor3 = Library.Theme.Text,
+					TextSize = 11,
+					Font = Enum.Font.Gotham,
+					TextXAlignment = Enum.TextXAlignment.Left,
+					Parent = SliderFrame,
+					ZIndex = 10
+				})
+
+				local ValueLabel = Utility.CreateElement("TextLabel", {
+					Name = "Value",
+					Size = UDim2.new(0, 45, 0, 18),
+					Position = UDim2.new(1, -50, 0, 2),
+					BackgroundTransparency = 1,
+					Text = tostring(Slider.Value),
+					TextColor3 = Library.Theme.Accent,
+					TextSize = 10,
+					Font = Enum.Font.GothamSemibold,
+					TextXAlignment = Enum.TextXAlignment.Right,
+					Parent = SliderFrame,
+					ZIndex = 10
+				})
+
+				-- Input TextBox for direct number input
+				local InputBox = Utility.CreateElement("TextBox", {
+					Name = "InputBox",
+					Size = UDim2.new(0, 60, 0, 16),
+					Position = UDim2.new(1, -68, 0, 22),
+					BackgroundColor3 = Library.Theme.DarkContrast,
+					BorderSizePixel = 0,
+					Text = tostring(Slider.Value),
+					TextColor3 = Library.Theme.Text,
+					TextSize = 10,
+					Font = Enum.Font.GothamSemibold,
+					TextXAlignment = Enum.TextXAlignment.Center,
+					PlaceholderText = "Enter value",
+					PlaceholderColor3 = Library.Theme.TextInactive,
+					Parent = SliderFrame,
+					ZIndex = 11
+				})
+				Utility.CreateCorner(InputBox, 2)
+				Utility.CreateStroke(InputBox, 1, Library.Theme.Outline, 0.5)
+
+				-- Plus/Minus buttons
+				local MinusButton = Utility.CreateElement("TextButton", {
+					Name = "Minus",
+					Size = UDim2.new(0, 20, 0, 16),
+					Position = UDim2.new(0, 8, 0, 45),
+					BackgroundColor3 = Library.Theme.DarkContrast,
+					BorderSizePixel = 0,
+					Text = "-",
+					TextColor3 = Library.Theme.Text,
+					TextSize = 14,
+					Font = Enum.Font.GothamBold,
+					Parent = SliderFrame,
+					ZIndex = 11
+				})
+				Utility.CreateCorner(MinusButton, 2)
+
+				local PlusButton = Utility.CreateElement("TextButton", {
+					Name = "Plus",
+					Size = UDim2.new(0, 20, 0, 16),
+					Position = UDim2.new(1, -28, 0, 45),
+					BackgroundColor3 = Library.Theme.DarkContrast,
+					BorderSizePixel = 0,
+					Text = "+",
+					TextColor3 = Library.Theme.Text,
+					TextSize = 14,
+					Font = Enum.Font.GothamBold,
+					Parent = SliderFrame,
+					ZIndex = 11
+				})
+				Utility.CreateCorner(PlusButton, 2)
+
+				local SliderBG = Utility.CreateElement("Frame", {
+					Name = "Background",
+					Size = UDim2.new(1, -60, 0, 6),
+					Position = UDim2.new(0, 32, 0, 50),
+					BackgroundColor3 = Library.Theme.DarkContrast,
+					BorderSizePixel = 0,
+					Parent = SliderFrame,
+					ZIndex = 10
+				})
+				Utility.CreateCorner(SliderBG, 3)
+				Utility.CreateStroke(SliderBG, 1, Library.Theme.Outline, 0.5)
+
+				local SliderFill = Utility.CreateElement("Frame", {
+					Name = "Fill",
+					Size = UDim2.new((Slider.Value - Slider.Min) / (Slider.Max - Slider.Min), 0, 1, 0),
+					Position = UDim2.new(0, 0, 0, 0),
+					BackgroundColor3 = Library.Theme.Accent,
+					BorderSizePixel = 0,
+					Parent = SliderBG,
+					ZIndex = 11
+				})
+				Utility.CreateCorner(SliderFill, 3)
+
+				-- Add gradient to fill
+				Utility.CreateGradient(SliderFill, 0, ColorSequence.new{
+					ColorSequenceKeypoint.new(0, Library.Theme.Accent),
+					ColorSequenceKeypoint.new(1, Color3.fromRGB(150, 150, 255))
+				})
+
+				local SliderKnob = Utility.CreateElement("Frame", {
+					Name = "Knob",
+					Size = UDim2.new(0, 12, 0, 12),
+					Position = UDim2.new((Slider.Value - Slider.Min) / (Slider.Max - Slider.Min), -6, 0, -3),
+					BackgroundColor3 = Color3.new(1, 1, 1),
+					BorderSizePixel = 0,
+					Parent = SliderBG,
+					ZIndex = 12
+				})
+				Utility.CreateCorner(SliderKnob, 6)
+				Utility.CreateStroke(SliderKnob, 2, Library.Theme.Accent)
+
+				local dragging = false
+
+				function Slider:Set(value)
+					Slider.Value = math.clamp(value, Slider.Min, Slider.Max)
+					local percent = (Slider.Value - Slider.Min) / (Slider.Max - Slider.Min)
+
+					Utility.Tween(SliderFill, {Size = UDim2.new(percent, 0, 1, 0)}, 0.1)
+					Utility.Tween(SliderKnob, {Position = UDim2.new(percent, -6, 0, -3)}, 0.1)
+
+					ValueLabel.Text = string.format("%.1f", Slider.Value)
+					InputBox.Text = tostring(math.floor(Slider.Value))
+					Library.Flags[options.Flag or Slider.Name] = Slider.Value
+					Slider.Callback(Slider.Value)
+				end
+
+				function Slider:SetMax(newMax)
+					self.Max = newMax
+					if self.Value > newMax then
+						self.Value = newMax
+					end
+
+					local percent = (self.Value - self.Min) / (self.Max - self.Min)
+					Utility.Tween(SliderFill, {Size = UDim2.new(percent, 0, 1, 0)}, 0.1)
+					ValueLabel.Text = string.format("%.1f", self.Value)
+					InputBox.Text = tostring(math.floor(self.Value))
+					Library.Flags[options.Flag or self.Name] = self.Value
+					self.Callback(self.Value)
+				end
+
+				-- Input box functionality
+				Utility.AddConnection(InputBox.FocusLost, function()
+					local inputValue = tonumber(InputBox.Text)
+					if inputValue then
+						Slider:Set(inputValue)
+					else
+						InputBox.Text = tostring(math.floor(Slider.Value))
+					end
+				end)
+
+				-- Input validation (only allow numbers, dots, and minus)
+				Utility.AddConnection(InputBox:GetPropertyChangedSignal("Text"), function()
+					local text = InputBox.Text
+					local filteredText = text:gsub("[^%d%.%-]", "") -- Only allow digits, dots, and minus
+
+					-- Prevent multiple dots or minus signs
+					local dotCount = 0
+					local minusCount = 0
+					local newText = ""
+
+					for i = 1, #filteredText do
+						local char = filteredText:sub(i, i)
+						if char == "." then
+							dotCount = dotCount + 1
+							if dotCount <= 1 then
+								newText = newText .. char
+							end
+						elseif char == "-" then
+							minusCount = minusCount + 1
+							if minusCount <= 1 and i == 1 then -- Minus only at start
+								newText = newText .. char
+							end
+						else
+							newText = newText .. char
+						end
+					end
+
+					if newText ~= text then
+						InputBox.Text = newText
+					end
+				end)
+
+				-- Plus/Minus button functionality
+				Utility.AddConnection(MinusButton.MouseButton1Click, function()
+					Slider:Set(Slider.Value - Slider.Increment)
+					Utility.Tween(MinusButton, {BackgroundColor3 = Library.Theme.Accent}, 0.1)
+					task.wait(0.1)
+					Utility.Tween(MinusButton, {BackgroundColor3 = Library.Theme.DarkContrast}, 0.1)
+				end)
+
+				Utility.AddConnection(PlusButton.MouseButton1Click, function()
+					Slider:Set(Slider.Value + Slider.Increment)
+					Utility.Tween(PlusButton, {BackgroundColor3 = Library.Theme.Accent}, 0.1)
+					task.wait(0.1)
+					Utility.Tween(PlusButton, {BackgroundColor3 = Library.Theme.DarkContrast}, 0.1)
+				end)
+
+				Utility.AddConnection(SliderBG.InputBegan, function(input)
+					if input.UserInputType == Enum.UserInputType.MouseButton1 then
+						dragging = true
+						local percent = math.clamp((input.Position.X - SliderBG.AbsolutePosition.X) / SliderBG.AbsoluteSize.X, 0, 1)
+						local value = Slider.Min + (percent * (Slider.Max - Slider.Min))
+						Slider:Set(value)
+					end
+				end)
+
+				Utility.AddConnection(UserInputService.InputChanged, function(input)
+					if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+						local percent = math.clamp((input.Position.X - SliderBG.AbsolutePosition.X) / SliderBG.AbsoluteSize.X, 0, 1)
+						local value = Slider.Min + (percent * (Slider.Max - Slider.Min))
+						Slider:Set(value)
+					end
+				end)
+
+				Utility.AddConnection(UserInputService.InputEnded, function(input)
+					if input.UserInputType == Enum.UserInputType.MouseButton1 then
+						dragging = false
+					end
+				end)
+
+				-- Hover effects
+				Utility.AddConnection(SliderBG.MouseEnter, function()
+					Utility.Tween(SliderFrame, {BackgroundColor3 = Library.Theme.LightContrast}, 0.2)
+					Utility.Tween(SliderKnob, {Size = UDim2.new(0, 14, 0, 14)}, 0.2)
+				end)
+
+				Utility.AddConnection(SliderBG.MouseLeave, function()
+					if not dragging then
+						Utility.Tween(SliderFrame, {BackgroundColor3 = Library.Theme.Inline}, 0.2)
+						Utility.Tween(SliderKnob, {Size = UDim2.new(0, 12, 0, 12)}, 0.2)
+					end
+				end)
+
+				Utility.AddConnection(InputBox.MouseEnter, function()
+					Utility.Tween(InputBox, {BackgroundColor3 = Library.Theme.LightContrast}, 0.2)
+				end)
+
+				Utility.AddConnection(InputBox.MouseLeave, function()
+					Utility.Tween(InputBox, {BackgroundColor3 = Library.Theme.DarkContrast}, 0.2)
+				end)
+
+				Slider:Set(Slider.Default)
+				table.insert(Section.Elements, Slider)
+				return Slider
+			end
+
+			function Section:Button(options)
+				local Button = {
+					Name = options.Title or "Button",
+					Callback = options.Callback or function() end
+				}
+
+				local ButtonFrame = Utility.CreateElement("TextButton", {
+					Name = "Button",
+					Size = UDim2.new(1, 0, 0, 25),
+					BackgroundColor3 = Library.Theme.LightContrast,
+					BorderSizePixel = 0,
+					Text = Button.Name,
+					TextColor3 = Library.Theme.Text,
+					TextSize = 11,
+					Font = Enum.Font.GothamSemibold,
+					Parent = SectionContent,
+					ZIndex = 9
+				})
+				Utility.CreateCorner(ButtonFrame, 4)
+				Utility.CreateStroke(ButtonFrame, 1, Library.Theme.Outline, 0.3)
+
+				-- Button gradient
+				Utility.CreateGradient(ButtonFrame, 90, ColorSequence.new{
+					ColorSequenceKeypoint.new(0, Library.Theme.LightContrast),
+					ColorSequenceKeypoint.new(1, Color3.fromRGB(63, 63, 63))
+				})
+
+				Utility.AddConnection(ButtonFrame.MouseButton1Click, function()
+					Button.Callback()
+
+					-- Click animation
+					Utility.Tween(ButtonFrame, {BackgroundColor3 = Library.Theme.Accent}, 0.1)
+					task.wait(0.1)
+					Utility.Tween(ButtonFrame, {BackgroundColor3 = Library.Theme.LightContrast}, 0.2)
+				end)
+
+				Utility.AddConnection(ButtonFrame.MouseEnter, function()
+					Utility.Tween(ButtonFrame, {BackgroundColor3 = Color3.fromRGB(85, 85, 113)}, 0.2)
+				end)
+
+				Utility.AddConnection(ButtonFrame.MouseLeave, function()
+					Utility.Tween(ButtonFrame, {BackgroundColor3 = Library.Theme.LightContrast}, 0.2)
+				end)
+
+				table.insert(Section.Elements, Button)
+				return Button
+			end
+
+			function Section:Dropdown(options)
+				local Dropdown = {
+					Name = options.Title or "Dropdown",
+					List = options.List or {"Option 1"},
+					Selected = options.Default or options.List[1],
+					Open = false,
+					Callback = options.Callback or function() end
+				}
+
+				Library.Flags[options.Flag or Dropdown.Name] = Dropdown.Selected
+
+				local DropdownFrame = Utility.CreateElement("Frame", {
+					Name = "Dropdown",
+					Size = UDim2.new(1, 0, 0, 25),
+					BackgroundColor3 = Library.Theme.Inline,
+					BorderSizePixel = 0,
+					Parent = SectionContent,
+					ZIndex = 9
+				})
+				Utility.CreateCorner(DropdownFrame, 3)
+
+				local DropdownButton = Utility.CreateElement("TextButton", {
+					Name = "Button",
+					Size = UDim2.new(1, 0, 1, 0),
+					BackgroundTransparency = 1,
+					Text = "",
+					Parent = DropdownFrame,
+					ZIndex = 11
+				})
+
+				local DropdownLabel = Utility.CreateElement("TextLabel", {
+					Name = "Label",
+					Size = UDim2.new(1, -30, 1, 0),
+					Position = UDim2.new(0, 8, 0, 0),
+					BackgroundTransparency = 1,
+					Text = Dropdown.Selected,
+					TextColor3 = Library.Theme.Text,
+					TextSize = 11,
+					Font = Enum.Font.Gotham,
+					TextXAlignment = Enum.TextXAlignment.Left,
+					TextYAlignment = Enum.TextYAlignment.Center,
+					Parent = DropdownFrame,
+					ZIndex = 10
+				})
+
+				local DropdownArrow = Utility.CreateElement("TextLabel", {
+					Name = "Arrow",
+					Size = UDim2.new(0, 20, 1, 0),
+					Position = UDim2.new(1, -25, 0, 0),
+					BackgroundTransparency = 1,
+					Text = "▼",
+					TextColor3 = Library.Theme.TextInactive,
+					TextSize = 10,
+					Font = Enum.Font.Gotham,
+					TextXAlignment = Enum.TextXAlignment.Center,
+					TextYAlignment = Enum.TextYAlignment.Center,
+					Parent = DropdownFrame,
+					ZIndex = 10
+				})
+
+				local DropdownList = Utility.CreateElement("Frame", {
+					Name = "List",
+					Size = UDim2.new(1, 0, 0, #Dropdown.List * 22),
+					Position = UDim2.new(0, 0, 1, 2),
+					BackgroundColor3 = Library.Theme.DarkContrast,
+					BorderSizePixel = 0,
+					Visible = false,
+					Parent = DropdownFrame,
+					ZIndex = 16
+				})
+				Utility.CreateCorner(DropdownList, 3)
+				Utility.CreateStroke(DropdownList, 1, Library.Theme.Outline)
+
+				local ListLayout = Instance.new("UIListLayout")
+				ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+				ListLayout.FillDirection = Enum.FillDirection.Vertical
+				ListLayout.Parent = DropdownList
+
+				function Dropdown:Set(value)
+					Dropdown.Selected = value
+					DropdownLabel.Text = value
+					Library.Flags[options.Flag or Dropdown.Name] = value
+					Dropdown.Callback(value)
+				end
+
+				-- Create list items
+				for i, option in pairs(Dropdown.List) do
+					local OptionButton = Utility.CreateElement("TextButton", {
+						Name = option,
+						Size = UDim2.new(1, 0, 0, 22),
+						BackgroundColor3 = Library.Theme.Inline,
+						BorderSizePixel = 0,
+						Text = option,
+						TextColor3 = Library.Theme.Text,
+						TextSize = 10,
+						Font = Enum.Font.Gotham,
+						Parent = DropdownList,
+						ZIndex = 17
+					})
+
+					Utility.AddConnection(OptionButton.MouseButton1Click, function()
+						Dropdown:Set(option)
+						Dropdown.Open = false
+						DropdownList.Visible = false
+						DropdownArrow.Text = "▼"
+					end)
+
+					Utility.AddConnection(OptionButton.MouseEnter, function()
+						Utility.Tween(OptionButton, {BackgroundColor3 = Library.Theme.Accent}, 0.2)
+					end)
+
+					Utility.AddConnection(OptionButton.MouseLeave, function()
+						Utility.Tween(OptionButton, {BackgroundColor3 = Library.Theme.Inline}, 0.2)
+					end)
+				end
+
+				Utility.AddConnection(DropdownButton.MouseButton1Click, function()
+					Dropdown.Open = not Dropdown.Open
+					DropdownList.Visible = Dropdown.Open
+					DropdownArrow.Text = Dropdown.Open and "▲" or "▼"
+				end)
+
+				table.insert(Section.Elements, Dropdown)
+				return Dropdown
+			end
+
+			function Section:Label(text)
+				local Label = Utility.CreateElement("TextLabel", {
+					Name = "Label",
+					Size = UDim2.new(1, 0, 0, 18),
+					BackgroundTransparency = 1,
+					Text = text,
+					TextColor3 = Library.Theme.TextInactive,
+					TextSize = 11,
+					Font = Enum.Font.Gotham,
+					TextXAlignment = Enum.TextXAlignment.Left,
+					TextYAlignment = Enum.TextYAlignment.Center,
+					Parent = SectionContent,
+					ZIndex = 9
+				})
+
+				return Label
+			end
+
+			table.insert(Tab.Sections, Section)
+			return Section
+		end
+
+		Tab.Button = TabButton
+		Tab.Content = TabContent
+		Tab.LeftContainer = LeftContainer
+		Tab.RightContainer = RightContainer
+		table.insert(Window.Tabs, Tab)
+
+		-- Auto-select first tab
+		if #Window.Tabs == 1 then
+			Window:SwitchTab(Tab)
+		end
+
+		return Tab
+	end
+
+	function Window:SwitchTab(tab)
+		for _, t in pairs(Window.Tabs) do
+			t.Button.TextColor3 = Library.Theme.TextInactive
+			t.Button.BackgroundColor3 = Library.Theme.DarkContrast
+			t.Content.Visible = false
+			t.Active = false
+		end
+
+		if tab then
+			tab.Button.TextColor3 = Library.Theme.Text
+			tab.Button.BackgroundColor3 = Library.Theme.Accent
+			tab.Content.Visible = true
+			tab.Active = true
+			Window.CurrentTab = tab
+
+			-- Tab switch animation
+			Utility.Tween(tab.Button, {BackgroundColor3 = Library.Theme.Accent}, 0.2)
+		end
+	end
+
+	-- Refresh UI function (for theme updates)
+	function Window:RefreshUI()
+		-- Update main frame colors
+		if MainFrame then
+			MainFrame.BackgroundColor3 = Library.Theme.DarkContrast
+			if AccentBorder then
+				AccentBorder.BackgroundColor3 = Library.Theme.Accent
+			end
+			if TitleBar then
+				TitleBar.BackgroundColor3 = Library.Theme.LightContrast
+			end
+			if LogoFrame then
+				LogoFrame.BackgroundColor3 = Library.Theme.Accent
+			end
+			if TitleLabel then
+				TitleLabel.TextColor3 = Library.Theme.Text
+			end
+		end
+
+		-- Update all tabs, sections, and elements
+		for _, tab in ipairs(self.Tabs or {}) do
+			if tab.Button then
+				tab.Button.BackgroundColor3 = Library.Theme.LightContrast
+				if tab.ButtonLabel then
+					tab.ButtonLabel.TextColor3 = Library.Theme.Text
+				end
+			end
+			for _, section in ipairs(tab.Sections or {}) do
+				if section.Frame then
+					section.Frame.BackgroundColor3 = Library.Theme.Inline
+				end
+				if section.Title then
+					section.Title.TextColor3 = Library.Theme.Text
+				end
+				for _, element in ipairs(section.Elements or {}) do
+					if element.Frame then
+						element.Frame.BackgroundColor3 = Library.Theme.LightContrast
+					end
+					if element.Label then
+						element.Label.TextColor3 = Library.Theme.Text
+					end
+					if element.Toggle then
+						element.Toggle.BackgroundColor3 = element.State and Library.Theme.Accent or Library.Theme.DarkContrast
+					end
+					if element.Button then
+						element.Button.BackgroundColor3 = Library.Theme.Accent
+						if element.ButtonLabel then
+							element.ButtonLabel.TextColor3 = Library.Theme.Text
+						end
+					end
+				end
+			end
+		end
+	end
+
+	-- Notification system
+	function Window:SendNotification(type, title, duration)
+		duration = duration or 3
+
+		local NotificationFrame = Utility.CreateElement("Frame", {
+			Name = "Notification",
+			Size = UDim2.new(0, 300, 0, 60),
+			Position = UDim2.new(1, -320, 0, 20 + (#Window.Notifications * 65)),
+			BackgroundColor3 = Library.Theme.DarkContrast,
+			BorderSizePixel = 0,
+			Parent = Library.ScreenGui,
+			ZIndex = 100
+		})
+		Utility.CreateCorner(NotificationFrame, 5)
+		Utility.CreateStroke(NotificationFrame, 1, Library.Theme.Outline)
+
+		-- Notification gradient
+		Utility.CreateGradient(NotificationFrame, 90, ColorSequence.new{
+			ColorSequenceKeypoint.new(0, Library.Theme.DarkContrast),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 20))
+		})
+
+		local NotificationAccent = Utility.CreateElement("Frame", {
+			Name = "Accent",
+			Size = UDim2.new(1, 0, 0, 3),
+			Position = UDim2.new(0, 0, 0, 0),
+			BackgroundColor3 = type == "Error" and Color3.fromRGB(255, 60, 60) or 
+				type == "Warning" and Color3.fromRGB(255, 165, 0) or 
+				type == "Success" and Color3.fromRGB(0, 255, 100) or
+				Library.Theme.Accent,
+			BorderSizePixel = 0,
+			Parent = NotificationFrame,
+			ZIndex = 101
+		})
+		Utility.CreateCorner(NotificationAccent, 5)
+
+		-- Accent gradient
+		Utility.CreateGradient(NotificationAccent, 0, ColorSequence.new{
+			ColorSequenceKeypoint.new(0, NotificationAccent.BackgroundColor3),
+			ColorSequenceKeypoint.new(0.5, Color3.new(1, 1, 1)),
+			ColorSequenceKeypoint.new(1, NotificationAccent.BackgroundColor3)
+		})
+
+		local NotificationIcon = Utility.CreateElement("TextLabel", {
+			Name = "Icon",
+			Size = UDim2.new(0, 40, 1, -6),
+			Position = UDim2.new(0, 5, 0, 8),
+			BackgroundTransparency = 1,
+			Text = type == "Error" and "⚠" or 
+				type == "Warning" and "⚠" or 
+				type == "Success" and "✓" or "ℹ",
+			TextColor3 = NotificationAccent.BackgroundColor3,
+			TextSize = 20,
+			Font = Enum.Font.GothamBold,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			TextYAlignment = Enum.TextYAlignment.Center,
+			Parent = NotificationFrame,
+			ZIndex = 101
+		})
+
+		local NotificationTitle = Utility.CreateElement("TextLabel", {
+			Name = "Title",
+			Size = UDim2.new(1, -55, 1, -6),
+			Position = UDim2.new(0, 45, 0, 8),
+			BackgroundTransparency = 1,
+			Text = title,
+			TextColor3 = Library.Theme.Text,
+			TextSize = 12,
+			Font = Enum.Font.GothamSemibold,
+			TextWrapped = true,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextYAlignment = Enum.TextYAlignment.Center,
+			Parent = NotificationFrame,
+			ZIndex = 101
+		})
+
+		table.insert(Window.Notifications, NotificationFrame)
+
+		-- Slide in animation
+		NotificationFrame.Position = UDim2.new(1, 0, 0, 20 + ((#Window.Notifications - 1) * 65))
+		Utility.Tween(NotificationFrame, {Position = UDim2.new(1, -320, 0, 20 + ((#Window.Notifications - 1) * 65))}, 0.4, Enum.EasingStyle.Back)
+
+		-- Auto remove after duration
+		task.spawn(function()
+			task.wait(duration - 0.5)
+			-- Slide out animation
+			Utility.Tween(NotificationFrame, {Position = UDim2.new(1, 0, 0, NotificationFrame.Position.Y.Offset)}, 0.3)
+			task.wait(0.3)
+
+			NotificationFrame:Destroy()
+			for i, notif in pairs(Window.Notifications) do
+				if notif == NotificationFrame then
+					table.remove(Window.Notifications, i)
+					break
+				end
+			end
+		end)
+	end
+
+	-- Start live updates
+	Library:StartLiveUpdates()
+
+	return Window
+end
+
+-- Return the Library module
+return Library
+
+--[[
+=== ABYSS UI LIBRARY - ENHANCED VERSION WITH ALL REQUESTED FIXES ===
+
+🚀 NEW FEATURES & FIXES:
+1. ✅ FIXED: Sections now properly go to Left/Right sides
+2. ✅ ADDED: Fixed Right Ctrl keybind that CANNOT be changed
+3. ✅ ENHANCED: UI Settings with both custom + fixed keybind display
+4. ✅ ADDED: Direct number input in Sliders with input validation
+
+=== KEY IMPROVEMENTS ===
+
+🔧 FIXED SECTION LAYOUT:
+- Sections now properly use LeftContainer and RightContainer
+- Side parameter ("Left"/"Right") now works correctly
+- Proper UIListLayout for both sides
+
+🔒 DUAL KEYBIND SYSTEM:
+- Custom keybind (default: Left Ctrl) - can be changed
+- Fixed keybind (Right Ctrl) - CANNOT be changed
+- Both keybinds toggle the UI
+- Clear visual distinction in UI Settings
+
+📝 ENHANCED SLIDER:
+- Input TextBox for direct number entry
+- Input validation (only numbers, dots, minus)
+- Real-time value updates
+- Plus/Minus buttons for fine control
+- Drag functionality still works
+
+⚙️ ENHANCED UI SETTINGS:
+- Shows both custom and fixed keybinds
+- Fixed keybind has different styling (red theme)
+- Lock icon (🔒) indicates unchangeable keybind
+- Prevents setting custom keybind to Right Ctrl
+
+=== USAGE EXAMPLES ===
+
+local Library = loadstring(game:HttpGet("YOUR_URL_HERE"))()
+
+-- Create persistent window
+local Window = Library:Window({
+	Title = "Enhanced Abyss UI",
+	Size = {X = 700, Y = 550}
+})
+
+-- Create tabs
+local MainTab = Window:Tab("Main Features")
+local SettingsTab = Window:Tab("Settings")
+
+-- Add UI Settings (includes dual keybind system)
+local UISettings = SettingsTab:SettingsSection() -- Always goes to left
+
+-- Add Theme Selector (goes to right by default)
+local ThemeSection = SettingsTab:ThemeSection()
+
+-- Create sections with proper left/right placement
+local LeftSection = MainTab:Section("Combat", "Left") -- Goes to left side
+local RightSection = MainTab:Section("Movement", "Right") -- Goes to right side
+
+-- Enhanced slider with input box
+local speedSlider = RightSection:Slider({
+	Title = "Walk Speed",
+	Min = 16,
+	Max = 500,
+	Default = 16,
+	Increment = 1,
+	Flag = "WalkSpeed",
+	Callback = function(value)
+		if game.Players.LocalPlayer.Character and 
+		   game.Players.LocalPlayer.Character:FindFirstChild("Humanoid") then
+			game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = value
+		end
+	end
+})
+
+-- Live displays for real-time data
+local healthDisplay = LeftSection:LiveDisplay({
+	Title = "Health",
+	ValueType = "number",
+	Format = "%.0f/%.0f",
+	UpdateFunction = function()
+		local char = game.Players.LocalPlayer.Character
+		if char and char:FindFirstChild("Humanoid") then
+			return char.Humanoid.Health, char.Humanoid.MaxHealth
+		end
+		return 0, 100
+	end
+})
+
+local fpsDisplay = RightSection:LiveDisplay({
+	Title = "FPS",
+	ValueType = "number",
+	Format = "%.0f",
+	UpdateFunction = function()
+		return math.floor(1 / game:GetService("RunService").Heartbeat:Wait())
+	end
+})
+
+-- Toggle with individual keybind
+local autoFarm = LeftSection:Toggle({
+	Title = "Auto Farm",
+	State = false,
+	Flag = "AutoFarm",
+	Keybind = Enum.KeyCode.F, -- Individual feature keybind
+	Callback = function(enabled)
+		print("Auto Farm:", enabled)
+		-- Your auto farm code here
+	end
+})
+
+-- Button example
+local teleportButton = RightSection:Button({
+	Title = "Teleport to Spawn",
+	Callback = function()
+		if game.Players.LocalPlayer.Character and 
+		   game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+			game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(0, 50, 0)
+		end
+		Window:SendNotification("Success", "Teleported to spawn!", 2)
+	end
+})
+
+-- Dropdown example
+local weaponSelect = LeftSection:Dropdown({
+	Title = "Select Weapon",
+	List = {"Sword", "Bow", "Staff", "Dagger"},
+	Default = "Sword",
+	Flag = "SelectedWeapon",
+	Callback = function(selected)
+		print("Selected weapon:", selected)
+		Window:SendNotification("Info", "Weapon changed to: " .. selected, 2)
+	end
+})
+
+=== KEYBIND SYSTEM ===
+
+🔧 CUSTOM KEYBIND (Changeable):
+- Default: Left Ctrl
+- Can be changed via UI Settings
+- Cannot be set to Right Ctrl (reserved)
+
+🔒 FIXED KEYBIND (Unchangeable):
+- Always: Right Ctrl
+- Cannot be changed
+- Shown with lock icon (🔒)
+- Different red styling
+
+Both keybinds will toggle the UI visibility.
+
+=== SLIDER ENHANCEMENTS ===
+
+📝 INPUT BOX FEATURES:
+- Click the input box to type numbers directly
+- Auto-validates input (only numbers, dots, minus)
+- Prevents multiple decimal points
+- Minus sign only allowed at start
+- Press Enter or click away to apply value
+- Invalid input reverts to current value
+
+🔢 INPUT VALIDATION:
+- Only allows: 0-9, ".", "-"
+- Single decimal point maximum
+- Minus sign only at beginning
+- Real-time character filtering
+
+=== SECTION LAYOUT FIXES ===
+
+📍 PROPER LEFT/RIGHT PLACEMENT:
+- LeftContainer: 48% width, positioned at 0%
+- RightContainer: 48% width, positioned at 52%
+- 4% gap between containers for clean layout
+- Independent UIListLayouts for each side
+
+🎯 SECTION TARGETING:
+Section("Name", "Left") → Goes to LeftContainer
+Section("Name", "Right") → Goes to RightContainer
+SettingsSection() → Always goes to LeftContainer  
+ThemeSection() → Always goes to RightContainer
+
+=== NOTIFICATION TYPES ===
+
+Window:SendNotification("Info", "Information message", 3)
+Window:SendNotification("Success", "Success message", 3) 
+Window:SendNotification("Warning", "Warning message", 3)
+Window:SendNotification("Error", "Error message", 3)
+
+=== COMPLETE FEATURE LIST ===
+
+✅ Persistent UI (never disappears on death)
+✅ Dual keybind system (custom + fixed Right Ctrl)
+✅ Fixed section layout (proper left/right placement)
+✅ Enhanced sliders with input boxes
+✅ Input validation for number entry
+✅ UI Settings section with keybind customization
+✅ 8 beautiful themes with selector
+✅ Live display elements with real-time updates
+✅ Professional animations and effects
+✅ Comprehensive notification system
+✅ Drag-to-move window
+✅ All standard UI elements (Toggle, Slider, Button, Dropdown, Label)
+
+This version addresses ALL the issues you mentioned and provides a complete, professional UI library!
+--]]
